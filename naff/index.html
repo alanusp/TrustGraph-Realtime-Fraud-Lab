@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0d1619">
+<title>NaFF — Para Naomi</title>
+<style>
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#0d1619;color:#f4eadf;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+main{position:fixed;inset:0;display:grid;place-items:center;padding:24px;text-align:center}
+.box{width:min(420px,92vw)}h1{margin:0 0 8px;font-size:32px}p{margin:0;color:#b9c7c3;line-height:1.5}
+.bar{height:4px;margin:20px 0 10px;background:#25383d;overflow:hidden}.bar i{display:block;width:4%;height:100%;background:#f0a45f;transition:width .18s ease}
+#error{display:none;color:#ffc0c8;margin-top:14px;font-size:13px}
+</style>
+</head>
+<body><main><div class="box"><h1>NaFF</h1><p>Preparando tu regalo, Naomi…</p><div class="bar"><i id="bar"></i></div><p id="status">Cargando videojuego</p><p id="error"></p></div></main>
+<script>
+(async()=>{
+ const status=document.getElementById('status'),err=document.getElementById('error'),bar=document.getElementById('bar');
+ try{
+  if(typeof DecompressionStream==='undefined') throw new Error('Actualiza tu navegador para abrir NaFF.');
+  const names=['part-00.txt', 'part-01.txt', 'part-02.txt', 'part-03.txt', 'part-04.txt', 'part-05.txt', 'part-06.txt', 'part-07.txt', 'part-08.txt', 'part-09.txt', 'part-10.txt', 'part-11.txt', 'part-12.txt', 'part-13.txt', 'part-14.txt', 'part-15.txt', 'part-16.txt', 'part-17.txt'];
+  const pieces=[];
+  for(let i=0;i<names.length;i++){
+    status.textContent=`Cargando ${i+1} de ${names.length}`;
+    bar.style.width=`${Math.round(((i+1)/names.length)*78)}%`;
+    const r=await fetch(`payload/${names[i]}`,{cache:'force-cache'});
+    if(!r.ok) throw new Error('No se pudo cargar una parte del juego.');
+    pieces.push(await r.text());
+  }
+  status.textContent='Abriendo…';bar.style.width='88%';
+  const bin=atob(pieces.join('')),packed=new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) packed[i]=bin.charCodeAt(i);
+  const stream=new Blob([packed]).stream().pipeThrough(new DecompressionStream('gzip'));
+  const bytes=new Uint8Array(await new Response(stream).arrayBuffer());
+  const digest=await crypto.subtle.digest('SHA-256',bytes);
+  const hash=[...new Uint8Array(digest)].map(b=>b.toString(16).padStart(2,'0')).join('');
+  if(hash!=='bceeb07cde79476fefd8baf8d68ede8363fa556f4a5b6c5e13fcfb10c4472d40') throw new Error('La descarga no pasó la verificación de integridad.');
+  bar.style.width='100%';
+  const html=new TextDecoder().decode(bytes);
+  document.open();document.write(html);document.close();
+ }catch(e){status.textContent='No se pudo abrir NaFF';err.style.display='block';err.textContent=e&&e.message?e.message:String(e)}
+})();
+</script></body></html>
