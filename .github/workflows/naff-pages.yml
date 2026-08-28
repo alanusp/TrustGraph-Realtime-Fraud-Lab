@@ -1,10 +1,10 @@
 name: Deploy NaFF Pages
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
-  workflow_dispatch:
 
 permissions:
   contents: read
@@ -32,27 +32,25 @@ jobs:
         with:
           enablement: true
 
-      - name: Reconstruct and verify NaFF v23
+      - name: Prepare and verify NaFF v23
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p _site
-          cat \
-            naff-v23-payload/part1.txt \
-            naff-v23-payload/part2.txt \
-            naff-v23-payload/part3.txt \
-            naff-v23-payload/part4.txt \
-            naff-v23-payload/part5.txt \
-            | tr -d '\r\n\t ' \
-            | base64 --decode \
-            | gzip --decompress \
-            > _site/index.html
-
           expected='bceeb07cde79476fefd8baf8d68ede8363fa556f4a5b6c5e13fcfb10c4472d40'
-          actual="$(sha256sum _site/index.html | awk '{print $1}')"
+          source='NaFF_v23_PUBLICAR.html'
+
+          if [ ! -f "$source" ]; then
+            echo 'ERROR: falta NaFF_v23_PUBLICAR.html en la rama naff-final-web-2.' >&2
+            echo 'No se publicará ningún paquete parcial.' >&2
+            exit 1
+          fi
+
+          actual="$(sha256sum "$source" | awk '{print $1}')"
           echo "NaFF SHA-256: $actual"
           test "$actual" = "$expected"
 
+          mkdir -p _site
+          cp "$source" _site/index.html
           test -s _site/index.html
           grep -qi '<!doctype html' _site/index.html
           touch _site/.nojekyll
