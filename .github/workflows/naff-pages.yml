@@ -29,12 +29,20 @@ jobs:
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
+        with:
+          enablement: true
 
-      - name: Prepare site
+      - name: Verify and prepare NaFF v23
+        shell: bash
         run: |
+          set -euo pipefail
+          expected='bceeb07cde79476fefd8baf8d68ede8363fa556f4a5b6c5e13fcfb10c4472d40'
+          actual="$(sha256sum NaFF_v23_PUBLICAR.html | awk '{print $1}')"
+          echo "NaFF SHA-256: $actual"
+          test "$actual" = "$expected"
+          test "$(stat -c '%s' NaFF_v23_PUBLICAR.html)" = "2298134"
           mkdir -p _site
-          cp index.html _site/index.html
-          cp -R naff-v23-payload _site/naff-v23-payload
+          cp NaFF_v23_PUBLICAR.html _site/index.html
           touch _site/.nojekyll
 
       - name: Upload Pages artifact
